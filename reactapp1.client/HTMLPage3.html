@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title>三角形五心</title>
+</head>
+<body>
+        <canvas id="canvas" width="1000" height="1000" style="border:1px solid #000;"></canvas>
+        <script>
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.translate(100,200);
+            // 三角形顶点（可修改）
+            //const A = { x: Math.random()*100, y: Math.random()*400 };
+            //const B = { x: Math.random()*200, y: Math.random()*160 };
+            //const C = { x: Math.random()*450, y: Math.random()*500 };
+            const A = { x: 100, y: 400 };
+            const B = { x: 200, y: 160 };
+            const C = { x: 450, y: 500 };
+            // 绘制三角形
+            function drawTriangle(ctx, A, B, C) {
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(A.x, A.y);
+                ctx.lineTo(B.x, B.y);
+                ctx.lineTo(C.x, C.y);
+                ctx.closePath();
+                ctx.stroke();
+            }
+            drawTriangle(ctx, A, B, C);
+            // 计算边长 distance
+            function dist(p1, p2) {
+                 return Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            }
+            const a = dist(B, C); // 对边A
+            const b = dist(A, C); // 对边B
+            const c = dist(A, B); // 对边C
+
+            // 1. 重心 G
+            function centroid(A, B, C) {
+                return {
+                    x: (A.x + B.x + C.x) / 3,
+                    y: (A.y + B.y + C.y) / 3
+                };
+            }
+
+            // 2. 内心 I
+            function incenter(A, B, C, a, b, c) {
+                let perimeter = a + b + c;
+                return {
+                    x: (a*A.x + b*B.x + c*C.x) / perimeter,
+                    y: (a*A.y + b*B.y + c*C.y) / perimeter
+                };
+            }
+
+            // 3. 外心 O
+            function circumcenter(A, B, C) {
+                let x1 = A.x, y1 = A.y;
+                let x2 = B.x, y2 = B.y;
+                let x3 = C.x, y3 = C.y;
+
+                let D = 2 * (x1*(y2 - y3) + x2*(y3 - y1) + x3*(y1 - y2));
+                if (Math.abs(D) < 1e-8) return null; // 三点共线
+
+                let Ux = ((x1*x1 + y1*y1) * (y2 - y3) +
+                          (x2*x2 + y2*y2) * (y3 - y1) +
+                          (x3*x3 + y3*y3) * (y1 - y2)) / D;
+
+                let Uy = ((x1*x1 + y1*y1) * (x3 - x2) +
+                          (x2*x2 + y2*y2) * (x1 - x3) +
+                          (x3*x3 + y3*y3) * (x2 - x1)) / D;
+
+                return { x: Ux, y: Uy };
+            }
+
+            // 4. 垂心 H (利用 H = 3G - 2O)
+            function orthocenter(G, O) {
+                return {
+                    x: 3*G.x - 2*O.x,
+                    y: 3*G.y - 2*O.y
+                };
+            }
+
+           // 5. 旁心 Ia, Ib, Ic
+           function excenters(A, B, C, a, b, c) {
+                let perimeter = a + b + c;
+                let Ia = {
+                    x: (-a*A.x + b*B.x + c*C.x) / (b + c - a),
+                    y: (-a*A.y + b*B.y + c*C.y) / (b + c - a)
+                };
+                let Ib = {
+                    x: (a*A.x - b*B.x + c*C.x) / (a + c - b),
+                    y: (a*A.y - b*B.y + c*C.y) / (a + c - b)
+                };
+                let Ic = {
+                    x: (a*A.x + b*B.x - c*C.x) / (a + b - c),
+                    y: (a*A.y + b*B.y - c*C.y) / (a + b - c)
+                };
+                return { Ia, Ib, Ic };
+            }
+
+            // 绘制点
+            function drawPoint(ctx, p, color, label, offsetX = 5, offsetY = -5) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                ctx.fillText(label, p.x + offsetX, p.y + offsetY);
+            }
+
+            // ===== 主程序 =====
+            //三角形顶点
+            drawPoint(ctx, A, 'red', 'A ');
+            drawPoint(ctx, B, 'red', 'B ');
+            drawPoint(ctx, C, 'red', 'C ');
+           
+            //绘制三角形三边中点
+            let Ma = { x: (B.x + C.x) / 2, y: (B.y + C.y) / 2 };
+            let Mb = { x: (A.x + C.x) / 2, y: (A.y + C.y) / 2 };
+            let Mc = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+            drawPoint(ctx, Ma, 'brown', 'Ma ', 5,-5);
+            drawPoint(ctx, Mb, 'brown', 'Mb ', 5,-5);
+            drawPoint(ctx, Mc, 'brown', 'Mc ', 5,-5);
+
+            const G = centroid(A, B, C);
+            const I = incenter(A, B, C, a, b, c);
+            const O = circumcenter(A, B, C);
+            const H = orthocenter(G, O);
+            const ex = excenters(A, B, C, a, b, c);
+            // 绘制五心
+            drawPoint(ctx, G, 'red', 'G ');
+            drawPoint(ctx, I, 'green', 'I ');
+            drawPoint(ctx, O, 'blue', 'O ');
+            drawPoint(ctx, H, 'orange', 'H ');
+
+            // 绘制旁心
+            if (ex.Ia) drawPoint(ctx, ex.Ia, 'purple', 'Ia A', 15, -15);
+            if (ex.Ib) drawPoint(ctx, ex.Ib, 'pink', 'Ib B', 15, -15);
+            if (ex.Ic) drawPoint(ctx, ex.Ic, 'cyan', 'Ic C', 15, -15);
+
+            // 可选：绘制外接圆
+            if (O) {
+                let R = dist(O, A);
+                ctx.beginPath();
+                ctx.arc(O.x, O.y, R, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(0,0,255,0.8)';
+                ctx.stroke();
+            }
+            // 可选：绘制内切圆
+            if (I) {
+                let s = (a + b + c) / 2; // 半周长
+                let r = Math.sqrt(s * (s - a) * (s - b) * (s - c)) / s; // 内切圆半径
+                ctx.beginPath();
+                ctx.arc(I.x, I.y, r, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(0,255,0,0.8)';
+                ctx.stroke();
+            }
+
+            //绘制三角形高
+            function drawAltitude(ctx, A, B, C) {
+                function footOfPerpendicular(P, A, B) {
+                    let N = { x: (O.x + H.x) / 2, y: (O.y + H.y) / 2 };
+                    let APx = P.x - A.x;
+                    let APy = P.y - A.y;
+                    let ABx = B.x - A.x;
+                    let ABy = B.y - A.y;
+                    let ab2 = ABx * ABx + ABy * ABy;
+                    let ap_ab = APx * ABx + APy * ABy;
+                    let t = ap_ab / ab2;
+                    return {
+                        x: A.x + t * ABx,
+                        y: A.y + t * ABy
+                    };
+                }
+                let Ha = footOfPerpendicular(A, B, C);
+                let Hb = footOfPerpendicular(B, A, C);
+                let Hc = footOfPerpendicular(C, A, B);
+                ctx.strokeStyle = 'rgba(255,0,0,0.5)';
+                ctx.beginPath();
+                ctx.moveTo(A.x, A.y);
+                ctx.lineTo(Ha.x, Ha.y);
+                ctx.moveTo(B.x, B.y);
+                ctx.lineTo(Hb.x, Hb.y);
+                ctx.moveTo(C.x, C.y);
+                ctx.lineTo(Hc.x, Hc.y);
+                ctx.stroke();
+               //三角形垂足
+                drawPoint(ctx,Ha,'purple','Ha',5,-5);
+                drawPoint(ctx,Hb,'purple','Hb',5,-5);
+                drawPoint(ctx,Hc,'purple','Hc',5,-5);
+            }
+            drawAltitude(ctx, A, B, C);
+
+          //绘制三角形内切圆心到切点的线
+          function drawIncenterLines(ctx, I, A, B, C) {
+                function footOfPerpendicular(P, A, B) {
+                    let APx = P.x - A.x;
+                    let APy = P.y - A.y;
+                    let ABx = B.x - A.x;
+                    let ABy = B.y - A.y;
+                    let ab2 = ABx * ABx + ABy * ABy;
+                    let ap_ab = APx * ABx + APy * ABy;
+                    let t = ap_ab / ab2;
+                    return {
+                        x: A.x + t * ABx,
+                        y: A.y + t * ABy
+                    };
+                }
+                let Ia = footOfPerpendicular(I, B, C);
+                let Ib = footOfPerpendicular(I, A, C);
+                let Ic = footOfPerpendicular(I, A, B);
+                ctx.strokeStyle = 'rgba(0,255,0,0.5)';
+                ctx.beginPath();
+                ctx.moveTo(I.x, I.y);
+                ctx.lineTo(Ia.x, Ia.y);
+                ctx.moveTo(I.x, I.y);
+                ctx.lineTo(Ib.x, Ib.y);
+                ctx.moveTo(I.x, I.y);
+                ctx.lineTo(Ic.x, Ic.y);
+                ctx.stroke();
+                drawPoint(ctx,Ia,'green','Ia',10,-10);
+                drawPoint(ctx,Ib,'green','Ib',10,-10);
+                drawPoint(ctx,Ic,'green','Ic',10,-10);
+            }
+            drawIncenterLines(ctx, I, A, B, C);
+           
+            // 可选：绘制欧拉线 OH
+            ctx.beginPath();
+            ctx.moveTo(O.x, O.y);
+            ctx.lineTo(H.x, H.y);
+            ctx.strokeStyle = 'rgba(255,165,0,0.3)';
+            ctx.stroke();
+
+            //绘制九点圆
+            if (O && H) {   
+                let N = { x: (O.x + H.x) / 2, y: (O.y + H.y) / 2 };
+                let Rn = dist(N, Ma); // 九点圆半径
+                ctx.beginPath();
+                ctx.arc(N.x, N.y, Rn, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'rgba(128,0,128,0.8)';
+                ctx.stroke();
+               
+                drawPoint(ctx, N, 'purple', 'N ', 10, -10);
+
+                //九点圆心到三角形三边中点线
+                ctx.beginPath();
+                ctx.moveTo(N.x,N.y);
+                ctx.lineTo(Ma.x,Ma.y);
+                ctx.moveTo(N.x,N.y);
+                ctx.lineTo(Mb.x,Mb.y);
+                ctx.moveTo(N.x,N.y);
+                ctx.lineTo(Mc.x,Mc.y);
+                ctx.stroke();
+            }   
+
+            //绘制HA HB HC 中点
+            N = { x: (O.x + H.x) / 2, y: (O.y + H.y) / 2 };
+            let AH = {x:(A.x+H.x)/2, y:(A.y+H.y)/2};
+            let BH = {x:(B.x+H.x)/2, y:(B.y+H.y)/2};
+            let CH = {x:(C.x+H.x)/2, y:(C.y+H.y)/2};
+            drawPoint(ctx, AH, 'red', 'AH', 5, -5);
+            drawPoint(ctx, BH, 'red', 'BH', 5, -5);
+            drawPoint(ctx, CH, 'red', 'CH', 5, -5);
+            //九点圆心 N 到 AH BH CH 点线 
+            ctx.beginPath();
+            ctx.moveTo(N.x, N.y);
+            ctx.lineTo(AH.x, AH.y);
+            ctx.moveTo(N.x, N.y);
+            ctx.lineTo(BH.x, BH.y);
+            ctx.moveTo(N.x, N.y);
+            ctx.lineTo(CH.x, CH.y);
+            ctx.stroke();
+
+            //输出结果到控制台
+            // console.log("重心 G:", G);
+            // console.log("内心 I:", I);
+            // console.log("外心 O:", O);
+            // console.log("垂心 H:", H);
+            // console.log("旁心:", ex);
+        </script>
+</body>
+</html>
